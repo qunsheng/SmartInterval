@@ -23,13 +23,25 @@
 				var currentTime = null;
 				var mainExecTime = null;
 				var interruptExecTime = null;
+				var actualExecTime = null;
 				var loading = false;
 				
+				// historical values
+				var lastExecTime = null;
+				var lastExecElapsed  = null;
+				var lastExecInterval = null;
+				
 				var resetExecTime =  function(){
+					if(  actualExecTime  && lastExecTime){
+						lastExecInterval = actualExecTime -lastExecTime;
+						console.log("lastExecInterval", lastExecInterval);
+					}
+					
 					currentTime = new Date().getTime();
 					// reset 
 					mainExecTime=currentTime +mainInterval ;
 					interruptExecTime=null ;
+					loading = false;
 				};
 				
 				// internal functions
@@ -40,14 +52,14 @@
 					if(mainExecTime && task ){
 						if(currentTime >= mainExecTime ){
 							execTask ();
-							resetExecTime ();
+							// resetExecTime ();
 						} else {
 							
 							if(interruptExecTime){
 								if(currentTime >= interruptExecTime ){
 									console.log("interruptExecTime is set!");
 									execTask ();
-									resetExecTime ();
+									// resetExecTime ();
 								}
 							}
 						}
@@ -55,20 +67,28 @@
 				};
 				
 				var execTask = function(){
+					currentTime = new Date().getTime();
+					lastExecTime = actualExecTime;
+					actualExecTime= currentTime;
 					task();
 					loading = true;
 				};
-				
-				
-				
+
 				return {
 					// init parameters and run
-					start: function(taskInput, overrideParameters){
+					start: function(taskInput, paras){
 						// save task
 						task = taskInput;
 						
-						if(overrideParameters){
+						if(paras){
+							if(paras.interval){
+								mainInterval = paras.interval;
+							}
 							
+							if(paras.checking){
+								internalCheckingInterval = paras.checking;
+							}
+
 							// set interval paramters
 							// set internal polling interval
 						
@@ -92,13 +112,14 @@
 					},
 					setLoadingDone: function(){
 						console.log("set execute a task done...");
-						loading = false;
+						
+						resetExecTime ();
 					}
 				};
 		
 			});
 
-			angularExample.controller("MainCtrl", function($scope,SmartInterval) {
+			angularExample.controller("MainCtrl", function($scope,SmartInterval,  $timeout) {
 				console.log("main controller...");
 				SmartInterval.start(
 					function(){
@@ -107,11 +128,20 @@
 					},
 					{
 						interval: 20000,
-						checking: 10000
+						checking: 1000
 						
 					}
 				);
-				SmartInterval.interrupt(500);
+				
+				
+			    $timeout(function refreshApp() {
+			
+			        SmartInterval.interrupt(1000);
+			        $timeout(refreshApp, 1000);
+			
+			    }, 1000);
+    
+				
 				
 			});
 			
