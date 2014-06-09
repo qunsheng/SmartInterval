@@ -3,7 +3,7 @@
 		<script src="http://code.angularjs.org/1.2.16/angular.min.js"></script>
 		<script type="text/javascript">
 			var angularExample = angular.module('angularexample', []);
-			angularExample.factory('SmartInterval', function() {
+			angularExample.factory('SmartInterval', function($interval) {
 				/*
 				 * logic:
 				 * 1) task will run in defined interval
@@ -22,25 +22,33 @@
 				// internal values
 				var currentTime = null;
 				var mainExecTime = null;
-				var interuptExecTime = null;
+				var interruptExecTime = null;
 				var loading = false;
+				
+				var resetExecTime =  function(){
+					currentTime = new Date().getTime();
+					// reset 
+					mainExecTime=currentTime +mainInterval ;
+					interruptExecTime=null ;
+				};
 				
 				// internal functions
 				var checkAndExec = function(){
 					
 					currentTime = new Date().getTime();
+					console.log("check and execute", currentTime, mainExecTime, interruptExecTime);
 					if(mainExecTime && task ){
 						if(currentTime >= mainExecTime ){
 							execTask ();
-							// reset 
-							mainExecTime=currentTime +mainInterval ;
-							interuptExecTime=null ;
+							resetExecTime ();
+						} else {
 							
-						} else if(interuptExecTime){
-							if(currentTime >= interuptExecTime ){
-								execTask ();
-								mainExecTime=currentTime +mainInterval ;
-								interuptExecTime=null ;
+							if(interruptExecTime){
+								if(currentTime >= interruptExecTime ){
+									console.log("interruptExecTime is set!");
+									execTask ();
+									resetExecTime ();
+								}
 							}
 						}
 					}
@@ -65,16 +73,25 @@
 							// set internal polling interval
 						
 						}
+						resetExecTime ();
+						// run
+						$interval(checkAndExec, internalCheckingInterval);
 						
 					},
-					interupt: function(milli){
-						var  newTime =  new Date().getTime()+ milli;
-						if(newTime < interuptExecTime){
-							interuptExecTime=newTime ;
+					interrupt: function(millis){
+						var  newTime =  new Date().getTime()+ millis;
+						if( interruptExecTime){
+							
+							if(newTime < interruptExecTime){
+								interruptExecTime=newTime ;
+							}
+						}else {
+							interruptExecTime=newTime ;
 						}
+						console.log("interrupt", currentTime, mainExecTime, interruptExecTime);
 					},
 					setLoadingDone: function(){
-						console.log("execute a task done...");
+						console.log("set execute a task done...");
 						loading = false;
 					}
 				};
@@ -83,11 +100,18 @@
 
 			angularExample.controller("MainCtrl", function($scope,SmartInterval) {
 				console.log("main controller...");
-				SmartInterval.start(function(){
-					console.log("execute a task...");
-					SmartInterval.setLoadingDone();
-				});
-				SmartInterval.interupt(500);
+				SmartInterval.start(
+					function(){
+						console.log("execute a task...");
+						SmartInterval.setLoadingDone();
+					},
+					{
+						interval: 20000,
+						checking: 10000
+						
+					}
+				);
+				SmartInterval.interrupt(500);
 				
 			});
 			
