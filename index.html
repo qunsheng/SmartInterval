@@ -1,0 +1,103 @@
+<html ng-app="angularexample">
+	<head>
+		<script src="http://code.angularjs.org/1.2.16/angular.min.js"></script>
+		<script type="text/javascript">
+			var angularExample = angular.module('angularexample', []);
+			angularExample.factory('SmartInterval', function() {
+				/*
+				 * logic:
+				 * 1) task will run in defined interval
+				 * but can be set an interupted timeout to execute earlier
+				 * 2) the interval will be calculated after the execution job is done. 
+				 * 3) the task function should include a code to set the execution is done
+				 * 
+				 */
+				// task
+				var task = null;
+				
+				// parameters
+				var mainInterval = 10000; // 10 sec
+				var internalCheckingInterval = 2000; // 2 sec
+				
+				// internal values
+				var currentTime = null;
+				var mainExecTime = null;
+				var interuptExecTime = null;
+				var loading = false;
+				
+				// internal functions
+				var checkAndExec = function(){
+					
+					currentTime = new Date().getTime();
+					if(mainExecTime && task ){
+						if(currentTime >= mainExecTime ){
+							execTask ();
+							// reset 
+							mainExecTime=currentTime +mainInterval ;
+							interuptExecTime=null ;
+							
+						} else if(interuptExecTime){
+							if(currentTime >= interuptExecTime ){
+								execTask ();
+								mainExecTime=currentTime +mainInterval ;
+								interuptExecTime=null ;
+							}
+						}
+					}
+				};
+				
+				var execTask = function(){
+					task();
+					loading = true;
+				};
+				
+				
+				
+				return {
+					// init parameters and run
+					start: function(taskInput, overrideParameters){
+						// save task
+						task = taskInput;
+						
+						if(overrideParameters){
+							
+							// set interval paramters
+							// set internal polling interval
+						
+						}
+						
+					},
+					interupt: function(milli){
+						var  newTime =  new Date().getTime()+ milli;
+						if(newTime < interuptExecTime){
+							interuptExecTime=newTime ;
+						}
+					},
+					setLoadingDone: function(){
+						console.log("execute a task done...");
+						loading = false;
+					}
+				};
+		
+			});
+
+			angularExample.controller("MainCtrl", function($scope,SmartInterval) {
+				console.log("main controller...");
+				SmartInterval.start(function(){
+					console.log("execute a task...");
+					SmartInterval.setLoadingDone();
+				});
+				SmartInterval.interupt(500);
+				
+			});
+			
+
+		</script>
+	</head>
+
+	<body>
+		<div ng-controller="MainCtrl">
+			<h1>Please look at devtool console</h1>
+		</div>
+	</body>
+</html>
