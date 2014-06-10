@@ -25,41 +25,56 @@
 				var interruptExecTime = null;
 				var actualExecTime = null;
 				var loading = false;
+				var pendingResetTime = false;
 				
 				// historical values
 				var lastExecTime = null;
 				var lastExecElapsed  = null;
 				var lastExecInterval = null;
+				var lastLoadingDone = null;
+				var lastLoadingTime = null;
 				
 				var resetExecTime =  function(){
+					console.log("reset exec times....");
 					if(  actualExecTime  && lastExecTime){
 						lastExecInterval = actualExecTime -lastExecTime;
 						console.log("lastExecInterval", lastExecInterval);
+					}
+					
+					if(  actualExecTime  && lastLoadingDone){
+						lastLoadingTime = lastLoadingDone - actualExecTime;
+						console.log("lastLoadingTime", lastLoadingTime );
 					}
 					
 					currentTime = new Date().getTime();
 					// reset 
 					mainExecTime=currentTime +mainInterval ;
 					interruptExecTime=null ;
-					loading = false;
+					pendingResetTime = false;
+					
 				};
 				
 				// internal functions
 				var checkAndExec = function(){
 					
 					currentTime = new Date().getTime();
-					console.log("check and execute", currentTime, mainExecTime, interruptExecTime);
+					console.log("check and execute", currentTime, mainExecTime, interruptExecTime, loading);
+					if(loading){
+						console.log("still loading...");
+						return;
+					} 
+					if(pendingResetTime){
+						resetExecTime ();
+					}
 					if(mainExecTime && task ){
 						if(currentTime >= mainExecTime ){
 							execTask ();
-							// resetExecTime ();
 						} else {
 							
 							if(interruptExecTime){
 								if(currentTime >= interruptExecTime ){
-									console.log("interruptExecTime is set!");
+									console.log("================================= interruptExecTime is set!");
 									execTask ();
-									// resetExecTime ();
 								}
 							}
 						}
@@ -70,8 +85,12 @@
 					currentTime = new Date().getTime();
 					lastExecTime = actualExecTime;
 					actualExecTime= currentTime;
-					task();
+					
 					loading = true;
+					pendingResetTime = true;
+					console.log("============================== before exec task: ", loading , pendingResetTime);		
+					task();
+
 				};
 
 				return {
@@ -111,9 +130,10 @@
 						console.log("interrupt", currentTime, mainExecTime, interruptExecTime);
 					},
 					setLoadingDone: function(){
-						console.log("set execute a task done...");
-						
-						resetExecTime ();
+						console.log("===================================== set execute a task done...");
+						loading = false;
+						console.log("===================================== set execute a task done...", loading);
+						lastLoadingDone = new Date().getTime();
 					}
 				};
 		
@@ -123,23 +143,25 @@
 				console.log("main controller...");
 				SmartInterval.start(
 					function(){
-						console.log("execute a task...");
+						console.log("========================== execute a task...");
 						SmartInterval.setLoadingDone();
 					},
 					{
-						interval: 20000,
+						interval: 10000,
 						checking: 1000
 						
 					}
 				);
 				
+				SmartInterval.interrupt(0);
 				
-			    $timeout(function refreshApp() {
-			
-			        SmartInterval.interrupt(1000);
-			        $timeout(refreshApp, 1000);
-			
-			    }, 1000);
+				
+			    // $timeout(function refreshApp() {
+// 			
+			        // SmartInterval.interrupt(4000);
+			        // $timeout(refreshApp, 1000);
+// 			
+			    // }, 1000);
     
 				
 				
